@@ -3,15 +3,18 @@ const express = require("express");
 const { Collection } = require("@discordjs/collection");
 const { promisify } = require("util");
 const readdir = promisify(require("fs").readdir);
+const mongoose = require("mongoose");
 
 // Initialize our client object
 const client = {};
 client.funcs = require("./functions.js");
-
 client.config = require("./config.json");
 
+// Initialize the express server
 const app = express();
 app.use(express.json());
+
+mongoose.connect("mongodb://127.0.0.1:27017/sekai-bot");
 
 // These 2 process methods will catch exceptions and give *more details* about the error and stack trace.
 process.on("uncaughtException", (err) => {
@@ -22,7 +25,6 @@ process.on("uncaughtException", (err) => {
   // That said, YOLO
   //process.exit(1);
 });
-
 process.on("unhandledRejection", (reason, p) => {
   console.error(`Unhandled rejection: \n${reason}\nStack:\n${reason.stack}\nPromise:\n${require("util").inspect(p, { depth: 2 })}`);
 });
@@ -49,7 +51,7 @@ client.commands = new Collection();
   });
 
   app.post("/owncastWebhook", async (req, res) => {
-    console.log(req.body);
+    //console.log(req.body);
     // Don't handle unhelpful events (ones that aren't chat messages or are from the bot)
     if (req.body.type !== "CHAT") return res.sendStatus(200);
     if (req.body.eventData.user.isBot) return res.sendStatus(200);
@@ -81,7 +83,7 @@ client.commands = new Collection();
       console.error(ex);
     }
 
-    res.sendStatus(200);
+    return res.sendStatus(200);
   });
 
   app.listen(client.config.expressPort, () => {

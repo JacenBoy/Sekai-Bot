@@ -5,7 +5,7 @@ exports.help = {
 };
 
 exports.conf = {
-  enabled: true
+  enabled: false
 }
 
 exports.run = async (client, args) => {
