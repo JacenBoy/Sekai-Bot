@@ -1,0 +1,17 @@
+{
+  "name": "sekai-bot",
+  "version": "1.0.0",
+  "description": "A basic chatbot for OwnCast",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node index.js"
+  },
+  "author": "",
+  "license": "GPL-3.0",
+  "dependencies": {
+    "@discordjs/collection": "^2.1.1",
+    "express": "^4.21.1",
+    "node-fetch": "^2.7.0"
+  }
+}
