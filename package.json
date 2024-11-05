@@ -11,7 +11,9 @@
   "license": "GPL-3.0",
   "dependencies": {
     "@discordjs/collection": "^2.1.1",
+    "ejs": "^3.1.10",
     "express": "^4.21.1",
+    "luxon": "^3.5.0",
     "mongoose": "^8.8.0",
     "node-fetch": "^2.7.0"
   }

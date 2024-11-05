@@ -13,6 +13,7 @@ client.config = require("./config.json");
 // Initialize the express server
 const app = express();
 app.use(express.json());
+app.set('view engine', 'ejs');
 
 mongoose.connect("mongodb://127.0.0.1:27017/sekai-bot");
 
@@ -82,6 +83,7 @@ client.commands = new Collection();
 
         // If we've passed all these checks, it's probably okay to run the command
         try {
+          console.log(`Running command ${cmd.help.name}`);
           await cmd.run(client, args);
         } catch (ex) {
           console.error(ex);
@@ -92,6 +94,15 @@ client.commands = new Collection();
     }
 
     return res.sendStatus(200);
+  });
+
+  app.get("/afterstream", async (req, res) => {
+    const afterstream = require("./models/afterstream.js");
+    const msgs = await afterstream.find({ resolved: false });
+    res.render("afterstream", {
+      messages: msgs,
+      DateTime: require("luxon").DateTime
+    });
   });
 
   app.listen(client.config.expressPort, () => {
