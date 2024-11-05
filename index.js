@@ -53,34 +53,42 @@ client.commands = new Collection();
   app.post("/owncastWebhook", async (req, res) => {
     //console.log(req.body);
     // Don't handle unhelpful events (ones that aren't chat messages or are from the bot)
-    if (req.body.type !== "CHAT") return res.sendStatus(200);
-    if (req.body.eventData.user.isBot) return res.sendStatus(200);
 
-    // Load the message into a variable
-    const message = req.body.eventData.rawBody;
+    // Determine the webhook event type
+    switch (req.body.type) {
+      case "CHAT":
+        // Ignore events from bots
+        if (req.body.eventData.user.isBot) return res.sendStatus(200);
 
-    // Ignore messages that don't start with the prefix
-    if (!message.startsWith(client.config.prefix)) return res.sendStatus(200);
+        // Load the message into a variable
+        const message = req.body.eventData.rawBody;
 
-    // Here we separate our "command" name, and our "arguments" for the command.
-    // e.g. if we have the message "+say Is this the real life?" , we'll get the following:
-    // command = say
-    // args = ["Is", "this", "the", "real", "life?"]
-    const args = message.slice(client.config.prefix.length).trim().split(/ +/g);
-    const command = args.shift().toLowerCase();
+        // Ignore messages that don't start with the prefix
+        if (!message.startsWith(client.config.prefix)) return res.sendStatus(200);
 
-    // Check whether the command exists in out collection
-    const cmd = client.commands.get(command);
-    if (!cmd) return res.sendStatus(200);
+        // Here we separate our "command" name, and our "arguments" for the command.
+        // e.g. if we have the message "+say Is this the real life?" , we'll get the following:
+        // command = say
+        // args = ["Is", "this", "the", "real", "life?"]
+        const args = message.slice(client.config.prefix.length).trim().split(/ +/g);
+        const command = args.shift().toLowerCase();
 
-    // Check to make sure that the command is enabled
-    if (!cmd.conf.enabled) return res.sendStatus(200);
+        // Check whether the command exists in out collection
+        const cmd = client.commands.get(command);
+        if (!cmd) return res.sendStatus(200);
 
-    // If we've passed all these checks, it's probably okay to run the command
-    try {
-      await cmd.run(client, args);
-    } catch (ex) {
-      console.error(ex);
+        // Check to make sure that the command is enabled
+        if (!cmd.conf.enabled) return res.sendStatus(200);
+
+        // If we've passed all these checks, it's probably okay to run the command
+        try {
+          await cmd.run(client, args);
+        } catch (ex) {
+          console.error(ex);
+        }
+        break;
+      default:
+        return res.sendStatus(200);
     }
 
     return res.sendStatus(200);
