@@ -51,21 +51,21 @@ client.commands = new Collection();
     }
   });
 
-  app.post("/owncastWebhook", async (req, res) => {
-    //console.log(req.body);
-    // Don't handle unhelpful events (ones that aren't chat messages or are from the bot)
+  app.post("/owncastWebhook/:key", async (req, res) => {
+    // Verify that the webhook includes the correct key
+    if (req.params.key !== client.config.whVerification) return res.sendStatus(403);
 
     // Determine the webhook event type
     switch (req.body.type) {
       case "CHAT":
         // Ignore events from bots
-        if (req.body.eventData.user.isBot) return res.sendStatus(200);
+        if (req.body.eventData.user.isBot) return res.sendStatus(204);
 
         // Load the message into a variable
         const message = req.body.eventData.rawBody;
 
         // Ignore messages that don't start with the prefix
-        if (!message.startsWith(client.config.prefix)) return res.sendStatus(200);
+        if (!message.startsWith(client.config.prefix)) return res.sendStatus(204);
 
         // Here we separate our "command" name, and our "arguments" for the command.
         // e.g. if we have the message "+say Is this the real life?" , we'll get the following:
@@ -76,10 +76,10 @@ client.commands = new Collection();
 
         // Check whether the command exists in out collection
         const cmd = client.commands.get(command);
-        if (!cmd) return res.sendStatus(200);
+        if (!cmd) return res.sendStatus(404);
 
         // Check to make sure that the command is enabled
-        if (!cmd.conf.enabled) return res.sendStatus(200);
+        if (!cmd.conf.enabled) return res.sendStatus(404);
 
         // If we've passed all these checks, it's probably okay to run the command
         try {
@@ -87,13 +87,12 @@ client.commands = new Collection();
           await cmd.run(client, args);
         } catch (ex) {
           console.error(ex);
+          return res.sendStatus(500);
         }
-        break;
-      default:
         return res.sendStatus(200);
+      default:
+        return res.sendStatus(204);
     }
-
-    return res.sendStatus(200);
   });
 
   app.get("/afterstream", async (req, res) => {
