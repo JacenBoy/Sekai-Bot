@@ -1,0 +1,7 @@
+{
+  "owncastUrl": "http://127.0.0.1:8080",
+  "owncastToken": "",
+  "expressPort": 3000,
+  "prefix": "!",
+  "whVerification": ""
+}
