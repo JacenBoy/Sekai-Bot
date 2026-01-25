@@ -10,5 +10,9 @@ module.exports = {
         "Authorization": `Bearer ${token}`
       }
     }).then(res => res.json());
+  },
+
+  "sleep": async (ms) => {
+    return new Promise(resolve => setTimeout(resolve, ms));
   }
 };

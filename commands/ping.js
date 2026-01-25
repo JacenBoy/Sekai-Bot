@@ -8,6 +8,6 @@ exports.conf = {
   enabled: true
 }
 
-exports.run = async (client, args) => {
+exports.run = async (client, user, args) => {
   client.funcs.sendMessage(client.config.owncastUrl, client.config.owncastToken, "Pong!");
 };

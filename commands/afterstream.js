@@ -11,7 +11,7 @@ exports.conf = {
   enabled: true
 }
 
-exports.run = async (client, args) => {
+exports.run = async (client, user, args) => {
   await afterstream.create({ message: args.join(" "), date: DateTime.now().toString(), resolved: false });
   client.funcs.sendMessage(client.config.owncastUrl, client.config.owncastToken, "Message has been logged.");
 };

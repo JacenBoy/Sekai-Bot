@@ -1,14 +1,21 @@
 // Load the modules that we'll need to initialize the bot
 const express = require("express");
 const { Collection } = require("@discordjs/collection");
+const { KokoroTTS } = require("kokoro-js");
 const { promisify } = require("util");
 const readdir = promisify(require("fs").readdir);
+const fs = require('node:fs/promises');
+const crypto = require("crypto");
 const mongoose = require("mongoose");
 
 // Initialize our client object
 const client = {};
 client.funcs = require("./functions.js");
 client.config = require("./config.json");
+client.tts = {
+  "isReading": false,
+  "message": null
+};
 
 // Initialize the express server
 const app = express();
@@ -16,6 +23,8 @@ app.use(express.json());
 app.set('view engine', 'ejs');
 
 mongoose.connect("mongodb://127.0.0.1:27017/sekai-bot");
+
+const ttsMessage = require("./models/ttsMessage.js");
 
 // These 2 process methods will catch exceptions and give *more details* about the error and stack trace.
 process.on("uncaughtException", (err) => {
@@ -55,6 +64,8 @@ client.commands = new Collection();
     // Verify that the webhook includes the correct key
     if (req.params.key !== client.config.whVerification) return res.sendStatus(403);
 
+    console.log(JSON.stringify(req.body));
+
     // Determine the webhook event type
     switch (req.body.type) {
       case "CHAT":
@@ -74,6 +85,8 @@ client.commands = new Collection();
         const args = message.slice(client.config.prefix.length).trim().split(/ +/g);
         const command = args.shift().toLowerCase();
 
+        const user = req.body.eventData.user;
+
         // Check whether the command exists in out collection
         const cmd = client.commands.get(command);
         if (!cmd) return res.sendStatus(404);
@@ -84,7 +97,7 @@ client.commands = new Collection();
         // If we've passed all these checks, it's probably okay to run the command
         try {
           console.log(`Running command ${cmd.help.name}`);
-          await cmd.run(client, args);
+          await cmd.run(client, user, args);
         } catch (ex) {
           console.error(ex);
           return res.sendStatus(500);
@@ -104,7 +117,80 @@ client.commands = new Collection();
     });
   });
 
+  app.get("/alerts", async (req, res) => {
+    res.render("alerts", {});
+  });
+
+  app.get("/api/tts/reading", async (req, res) => {
+    res.send(JSON.stringify({"isReading": client.tts.isReading}));
+  });
+  app.post("/api/tts/reading", async (req, res) => {
+    if (req.body.isReading !== true && req.body.isReading !== false) {
+      console.log(`Invalid reading status: ${JSON.stringify(req.body)}`);
+      return res.sendStatus(400);
+    }
+    client.tts.isReading = req.body.isReading;
+    console.log(`Reading status set to ${client.tts.isReading}`);
+    res.sendStatus(200);
+  });
+
+  app.get("/api/tts/message", async (req, res) => {
+    res.send(JSON.stringify({"message": client.tts.message}));
+  });
+
+  app.post("/api/tts/reset", async (req, res) => {
+    console.log("Message queue reset")
+    client.tts.message = null;
+    res.sendStatus(200);
+  });
+
   app.listen(client.config.expressPort, () => {
     console.log(`Express server listening on port ${client.config.expressPort}`);
   });
+
+  while (true) {
+    if (!client.tts.isReading) {
+      const tts = await ttsMessage.find({ read: false }).sort("timestamp");
+      if (tts.length === 0) {
+        continue;  
+      }
+      client.tts.isReading = true;
+
+      const model_id = "onnx-community/Kokoro-82M-v1.0-ONNX";
+      const kokoro = await KokoroTTS.from_pretrained(model_id, {
+        dtype: "q8",
+        device: "cpu"
+      });
+
+      console.log("Generating new TTS message");
+      const audio = await kokoro.generate(tts[0].message, {
+        voice: "af_heart",
+        speed: 0.7
+      });
+
+      const filePath = "./tmp/";
+
+      try {
+        await fs.access(filePath);
+      } catch {
+        await fs.mkdir(filePath);
+      }
+
+      const id = crypto.randomBytes(16).toString("hex");
+
+      await audio.save(`${filePath}${id}.wav`);
+      const audioBuffer = await fs.readFile(`${filePath}${id}.wav`);
+      console.log("TTS has been generated");
+
+      client.tts.message = {
+        user: tts[0].username,
+        text: tts[0].message,
+        audio: audioBuffer.toString("base64")
+      };
+      await fs.unlink(`${filePath}${id}.wav`);
+      await ttsMessage.updateOne({ _id: tts[0]._id }, { read: true });
+    }
+    
+    await client.funcs.sleep(5000); // 5 seconds
+  }
 })();
