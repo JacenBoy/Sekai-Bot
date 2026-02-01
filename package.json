@@ -16,6 +16,7 @@
     "kokoro-js": "^1.2.1",
     "luxon": "^3.5.0",
     "mongoose": "^8.8.3",
-    "node-fetch": "^2.7.0"
+    "node-fetch": "^2.7.0",
+    "obscenity": "^0.4.6"
   }
 }

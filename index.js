@@ -2,6 +2,7 @@
 const express = require("express");
 const { Collection } = require("@discordjs/collection");
 const { KokoroTTS } = require("kokoro-js");
+const { RegExpMatcher, TextCensor, englishDataset, englishRecommendedTransformers } = require('obscenity');
 const { promisify } = require("util");
 const readdir = promisify(require("fs").readdir);
 const fs = require('node:fs/promises');
@@ -16,6 +17,10 @@ client.tts = {
   "isReading": false,
   "message": null
 };
+client.matcher = new RegExpMatcher({
+  ...englishDataset.build(),
+  ...englishRecommendedTransformers
+});
 
 // Initialize the express server
 const app = express();
